@@ -40,23 +40,22 @@ export default function App() {
     [addToast]
   );
 
-  const loadLeads = useCallback(async () => {
+  const loadLeads = useCallback(async (showToast = true) => {
     setLoading(true);
     const result = await fetchLeads();
     setLoading(false);
     if (result.success) {
       setLeads(result.data);
       setConnected(true);
-      addToast('success', 'OK', `Loaded ${result.count} lead(s) from Zoho CRM`);
+      if (showToast) addToast('success', 'OK', `Loaded ${result.count} lead(s) from Zoho CRM`);
     } else {
       setConnected(false);
       showError(result);
     }
   }, [addToast, showError]);
 
-  useEffect(() => {
-    checkHealth().then((r) => setConnected(!!r.success));
-    loadLeads(); // auto-load leads on first paint
+  useEffect(() => {      checkHealth().then((r) => setConnected(!!r.success));
+    loadLeads(false); // auto-load leads on first paint (no toast)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -87,7 +86,7 @@ export default function App() {
           <ErrorSimulator onError={showError} />
         </div>
         <div className="lg:col-span-2">
-          <LeadTable leads={leads} loading={loading} onView={setSelectedLeadId} />
+          <LeadTable leads={leads} loading={loading} onView={setSelectedLeadId} onRefresh={loadLeads} onError={showError} onSuccess={(m) => addToast('success', 'DELETED', m)} />
         </div>
       </div>
 

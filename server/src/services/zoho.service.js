@@ -88,18 +88,37 @@ class ZohoService {
     }
   }
 
-  /** Fetch Leads: returns Record ID, Full Name, Email, Phone, Company. */
-  async getLeads() {
+  /** Fetch Leads: returns Record ID, Full Name, Email, Phone, Company.
+   * @param {{search?: string, company?: string}} [opts] optional client-side filters.
+   */
+  async getLeads(opts = {}) {
     const url = `${config.apiDomain}/crm/v3/Leads`;
-    const params = { fields: 'First_Name,Last_Name,Email,Phone,Company', per_page: 50 };
+    const params = { fields: 'First_Name,Last_Name,Email,Phone,Company', per_page: 200 };
     const data = await this._request('get', url, { params });
-    return (data.data || []).map((r) => ({
+    let leads = (data.data || []).map((r) => ({
       id: r.id,
       fullName: [r.First_Name, r.Last_Name].filter(Boolean).join(' ') || r.Last_Name || '—',
       email: r.Email || null,
       phone: r.Phone || null,
       company: r.Company || null,
+      createdTime: r.Created_Time || null,
     }));
+
+    // Optional filters (server-side convenience; applied post-fetch)
+    if (opts.search) {
+      const q = String(opts.search).toLowerCase();
+      leads = leads.filter(
+        (l) =>
+          (l.fullName || '').toLowerCase().includes(q) ||
+          (l.email || '').toLowerCase().includes(q) ||
+          (l.company || '').toLowerCase().includes(q)
+      );
+    }
+    if (opts.company) {
+      const c = String(opts.company).toLowerCase();
+      leads = leads.filter((l) => (l.company || '').toLowerCase().includes(c));
+    }
+    return leads;
   }
 
   /** Create a Lead with mandatory fields validated. */
@@ -154,6 +173,20 @@ class ZohoService {
   async getInvalidModule() {
     const url = `${config.apiDomain}/crm/v3/InvalidModuleName`;
     return this._request('get', url);
+  }
+
+  /** Delete a Lead by Record ID. */
+  async deleteLead(recordId) {
+    const url = `${config.apiDomain}/crm/v3/Leads/${encodeURIComponent(recordId)}`;
+    const data = await this._request('delete', url);
+    const row = (data.data && data.data[0]) || {};
+    if (row.status === 'error') {
+      const err = new Error(row.message || 'Zoho rejected the delete');
+      err.status = 400;
+      err.zohoError = row.code || 'LEAD_DELETE_FAILED';
+      throw err;
+    }
+    return { id: row.details?.id || recordId, status: row.status || 'success', message: row.message || 'Lead deleted' };
   }
 }
 

@@ -54,11 +54,15 @@ The Vite dev server proxies `/api` → `http://localhost:5000`.
 
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/api/health` | Health + config check |
-| GET | `/api/leads` | List leads (ID, Name, Email, Phone, Company) |
-| POST | `/api/leads` | Create lead |
+| GET | `/api/health` | Health: version, uptime, Zoho config, token-cache state |
+| GET | `/api/leads` | List leads — supports `?search=` (name/email/ID) and `?company=` filters |
+| POST | `/api/leads` | Create lead (validated: `lastName`, `company` required, email format) |
 | GET | `/api/leads/:id` | Get lead by Record ID |
+| DELETE | `/api/leads/:id` | Delete lead by Record ID |
 | GET | `/api/test-error?type=token\|field\|module` | Error simulation (alias: `/api/simulate-error`) |
+
+All requests are rate-limited to 120 req/min per IP (`429` beyond that).
+Errors return a consistent contract: `{ success: false, error: { code, message, status, details? } }`.
 
 ### Sample: POST /api/leads
 
@@ -79,11 +83,47 @@ Response (201):
 { "success": false, "error": { "code": "INVALID_TOKEN", "message": "Authentication failed: invalid or expired OAuth token", "status": 401 } }
 ```
 
+### Sample: DELETE /api/leads/:id
+
+Response:
+```json
+{ "success": true, "data": { "id": "1234567890123456789", "status": "success", "message": "record deleted" } }
+```
+
 ## OAuth Auto-Refresh
 
 `ZohoService.getAccessToken()` caches the access token in memory and refreshes via the Refresh Token grant only when expired (60s safety margin) or when a 401 is received (single retry).
 
+## Features
+
+### Dashboard (React + DaisyUI)
+- Light/dark theme toggle (persisted), stats cards (Total Leads / Created Today / API Status)
+- Shimmer skeleton loading states, staggered entrance animations, animated toasts
+- **Search** across name, email, and Record ID; **company filter** with autocomplete suggestions
+- Copy-to-clipboard Record IDs, mailto email links, delete with confirmation
+- Lead details modal (auto-opens after creation) with full JSON payload
+- Error testing panel triggering real handled Zoho API errors
+
+### Backend (Express)
+- OAuth2 refresh-token flow with in-memory access-token cache (auto-refresh on expiry or 401)
+- Fail-fast payload validation with per-field error details
+- Rate limiting, security headers, request logging with duration, graceful shutdown
+- Enriched health check (version, uptime, token-cache expiry — never the token itself)
+
 ## Error Handling
 
 Zoho errors (e.g. `INVALID_TOKEN`, `MANDATORY_NOT_FOUND`, `INVALID_MODULE`) are parsed by the centralized error middleware and returned as clean JSON; the frontend shows matching toasts.
+
+Example validation error:
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Validation failed: Last Name is required; Company is required",
+    "status": 400,
+    "details": { "fields": [{ "field": "lastName", "message": "Last Name is required" }] }
+  }
+}
+```
 

@@ -2,9 +2,9 @@ const zohoService = require('../services/zoho.service');
 const asyncHandler = require('../utils/asyncHandler');
 const { validateLeadPayload } = require('../validators/lead.validator');
 
-/** GET /api/leads — list leads. */
+/** GET /api/leads — list leads. Supports ?search= &company= filters. */
 exports.getLeads = asyncHandler(async (req, res) => {
-  const leads = await zohoService.getLeads();
+  const leads = await zohoService.getLeads({ search: req.query.search, company: req.query.company });
   res.json({ success: true, count: leads.length, data: leads });
 });
 
@@ -26,6 +26,12 @@ exports.createLead = asyncHandler(async (req, res) => {
 exports.getLeadById = asyncHandler(async (req, res) => {
   const lead = await zohoService.getLeadById(req.params.id);
   res.json({ success: true, data: lead });
+});
+
+/** DELETE /api/leads/:id — delete a lead by record ID. */
+exports.deleteLead = asyncHandler(async (req, res) => {
+  const result = await zohoService.deleteLead(req.params.id);
+  res.json({ success: true, data: result });
 });
 
 /**
