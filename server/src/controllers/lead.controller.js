@@ -1,5 +1,6 @@
 const zohoService = require('../services/zoho.service');
 const asyncHandler = require('../utils/asyncHandler');
+const { validateLeadPayload } = require('../validators/lead.validator');
 
 /** GET /api/leads — list leads. */
 exports.getLeads = asyncHandler(async (req, res) => {
@@ -7,17 +8,17 @@ exports.getLeads = asyncHandler(async (req, res) => {
   res.json({ success: true, count: leads.length, data: leads });
 });
 
-/** POST /api/leads — create a lead. */
+/** POST /api/leads — create a lead. Fails fast with 400 on invalid payloads. */
 exports.createLead = asyncHandler(async (req, res) => {
-  const { firstName, lastName, company, email, phone } = req.body || {};
-  const leadData = {
-    First_Name: firstName?.trim() || undefined,
-    Last_Name: lastName?.trim(),
-    Company: company?.trim(),
-    Email: email?.trim() || undefined,
-    Phone: phone?.trim() || undefined,
-  };
-  const result = await zohoService.createLead(leadData);
+  const { valid, errors, clean } = validateLeadPayload(req.body || {});
+  if (!valid) {
+    const err = new Error(`Validation failed: ${errors.map((e) => e.message).join('; ')}`);
+    err.status = 400;
+    err.zohoError = 'VALIDATION_ERROR';
+    err.zohoDetails = { fields: errors };
+    throw err;
+  }
+  const result = await zohoService.createLead(clean);
   res.status(201).json({ success: true, data: result });
 });
 

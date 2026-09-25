@@ -1,25 +1,14 @@
+import { AlertTriangle } from 'lucide-react';
 import { simulateError } from '../services/api';
 
 const SCENARIOS = [
-  {
-    type: 'token',
-    label: 'Simulate Invalid/Expired Token',
-    description: 'Forces a 401 authentication error',
-  },
-  {
-    type: 'field',
-    label: 'Simulate Missing Required Field',
-    description: 'Submits payload without Last_Name → 400 MANDATORY_NOT_FOUND',
-  },
-  {
-    type: 'module',
-    label: 'Simulate Invalid Module',
-    description: 'Calls /crm/v3/InvalidModuleName → 404',
-  },
+  { type: 'token', label: 'Invalid / Expired Token', code: '401 · INVALID_TOKEN' },
+  { type: 'field', label: 'Missing Required Field', code: '400 · MANDATORY_NOT_FOUND' },
+  { type: 'module', label: 'Invalid Module', code: '400 · INVALID_MODULE' },
 ];
 
 /**
- * Error Testing Panel: triggers handled API errors for the demo.
+ * Error Testing Panel ("danger zone"): triggers handled API errors for the demo.
  */
 export default function ErrorSimulator({ onError }) {
   async function trigger(type) {
@@ -29,16 +18,22 @@ export default function ErrorSimulator({ onError }) {
   }
 
   return (
-    <div className="card bg-base-100 shadow-md">
+    <div className="card bg-base-100 shadow-md border border-error/20 animate-slide-up stagger-3">
       <div className="card-body gap-3">
         <div>
-          <h2 className="card-title text-lg">Error Testing Panel</h2>
+          <h2 className="card-title text-lg gap-2">
+            <AlertTriangle className="h-5 w-5 text-error" /> Error Testing Panel
+          </h2>
           <p className="text-xs opacity-60">Triggers handled API errors to demonstrate error responses.</p>
         </div>
         {SCENARIOS.map((s) => (
-          <button key={s.type} className="btn btn-outline btn-error btn-sm justify-start" onClick={() => trigger(s.type)}>
-            {s.label}
-            <span className="ml-auto text-xs opacity-60 hidden md:inline">{s.description}</span>
+          <button
+            key={s.type}
+            className="btn btn-outline btn-error btn-sm justify-between transition-transform active:scale-[0.98]"
+            onClick={() => trigger(s.type)}
+          >
+            <span>{s.label}</span>
+            <span className="badge badge-error badge-outline badge-sm font-mono text-[10px]">{s.code}</span>
           </button>
         ))}
       </div>

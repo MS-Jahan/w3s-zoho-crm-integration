@@ -1,3 +1,32 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Smooth theme transitions on all surfaces */
+body,
+.card,
+.navbar,
+.table,
+.input,
+.btn {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* Shimmer skeleton effect */
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.skeleton-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.25), transparent);
+  animation: shimmer 1.6s infinite;
+}
+
+/* Stagger helpers */
+.stagger-1 { animation-delay: 60ms; }
+.stagger-2 { animation-delay: 140ms; }
+.stagger-3 { animation-delay: 220ms; }

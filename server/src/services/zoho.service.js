@@ -147,7 +147,6 @@ class ZohoService {
       company: r.Company || null,
       createdTime: r.Created_Time || null,
       modifiedTime: r.Modified_Time || null,
-      raw: r,
     };
   }
 
