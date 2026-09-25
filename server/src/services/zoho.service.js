@@ -55,12 +55,14 @@ class ZohoService {
   _mapZohoError(error) {
     if (error.response) {
       const { status, data } = error.response;
-      const payload = Array.isArray(data) ? data[0] : data;
-      const code = payload?.code || payload?.message?.code || 'ZOHO_API_ERROR';
-      const message = payload?.message?.message || payload?.message || payload?.detail || 'Zoho API request failed';
+      // Zoho error shapes: { code, message, status } (auth) or { data: [{ code, details, message, status }] } (batch)
+      const node = Array.isArray(data) ? data[0] : Array.isArray(data?.data) ? data.data[0] : data;
+      const code = node?.code || 'ZOHO_API_ERROR';
+      const message = node?.message || node?.detail || 'Zoho API request failed';
       const err = new Error(message);
       err.status = status === 400 ? 400 : status || 500;
       err.zohoError = code;
+      err.zohoDetails = node?.details || null;
       return err;
     }
     const err = new Error(error.message || 'Network error contacting Zoho');

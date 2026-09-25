@@ -13,7 +13,7 @@ function errorHandler(err, req, res, _next) {
 
   res.status(status).json({
     success: false,
-    error: { code, message, status },
+    error: { code, message, status, ...(err.zohoDetails ? { details: err.zohoDetails } : {}) },
   });
 }
 
