@@ -1,0 +1,64 @@
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  timeout: 30000,
+});
+
+/** Normalize axios/Zoho errors into a friendly message. */
+function extractError(error) {
+  const payload = error.response?.data;
+  if (payload?.error) {
+    return { code: payload.error.code, message: payload.error.message, status: payload.error.status };
+  }
+  return {
+    code: error.code || 'NETWORK_ERROR',
+    message: error.message || 'Unexpected error',
+    status: error.response?.status || 0,
+  };
+}
+
+export async function fetchLeads() {
+  try {
+    const res = await api.get('/leads');
+    return { success: true, data: res.data.data, count: res.data.count };
+  } catch (error) {
+    return { success: false, ...extractError(error) };
+  }
+}
+
+export async function createLead(lead) {
+  try {
+    const res = await api.post('/leads', lead);
+    return { success: true, data: res.data.data };
+  } catch (error) {
+    return { success: false, ...extractError(error) };
+  }
+}
+
+export async function fetchLeadById(id) {
+  try {
+    const res = await api.get(`/leads/${encodeURIComponent(id)}`);
+    return { success: true, data: res.data.data };
+  } catch (error) {
+    return { success: false, ...extractError(error) };
+  }
+}
+
+export async function simulateError(type) {
+  try {
+    const res = await api.get('/test-error', { params: { type } });
+    return { success: true, data: res.data };
+  } catch (error) {
+    return { success: false, ...extractError(error) };
+  }
+}
+
+export async function checkHealth() {
+  try {
+    const res = await api.get('/health');
+    return { success: true, data: res.data };
+  } catch (error) {
+    return { success: false, ...extractError(error) };
+  }
+}
