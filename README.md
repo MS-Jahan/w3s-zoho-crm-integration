@@ -55,9 +55,10 @@ The Vite dev server proxies `/api` → `http://localhost:5000`.
 | Method | Endpoint | Description |
 |---|---|---|
 | GET | `/api/health` | Health: version, uptime, Zoho config, token-cache state |
-| GET | `/api/leads` | List leads — supports `?search=` (name/email/ID) and `?company=` filters |
+| GET | `/api/leads` | Paginated list — `?page=` & `per_page=` (default 25, max 200), `?search=`, `?company=` |
 | POST | `/api/leads` | Create lead (validated: `lastName`, `company` required, email format) |
-| GET | `/api/leads/:id` | Get lead by Record ID |
+| GET | `/api/leads/:id` | Get lead by Record ID (incl. mobile, website, lead status/source, industry, owner) |
+| PUT | `/api/leads/:id` | Update lead fields (`firstName`, `lastName`, `company`, `email`, `phone`) |
 | DELETE | `/api/leads/:id` | Delete lead by Record ID |
 | GET | `/api/test-error?type=token\|field\|module` | Error simulation (alias: `/api/simulate-error`) |
 
@@ -83,6 +84,18 @@ Response (201):
 { "success": false, "error": { "code": "INVALID_TOKEN", "message": "Authentication failed: invalid or expired OAuth token", "status": 401 } }
 ```
 
+### Sample: PUT /api/leads/:id
+
+Request:
+```json
+{ "company": "Updated Co", "phone": "555-9999" }
+```
+
+Response:
+```json
+{ "success": true, "data": { "id": "1234567890123456789", "status": "success", "message": "record updated", "updatedFields": ["Company", "Phone"] } }
+```
+
 ### Sample: DELETE /api/leads/:id
 
 Response:
@@ -100,8 +113,9 @@ Response:
 - Light/dark theme toggle (persisted), stats cards (Total Leads / Created Today / API Status)
 - Shimmer skeleton loading states, staggered entrance animations, animated toasts
 - **Search** across name, email, and Record ID; **company filter** with autocomplete suggestions
-- Copy-to-clipboard Record IDs, mailto email links, delete with confirmation
-- Lead details modal (auto-opens after creation) with full JSON payload
+- **Pagination** (25/page, Prev/Next with Zoho `more_records` awareness)
+- **Edit leads** via prefilled modal (PUT), delete with confirmation, copy-to-clipboard Record IDs, mailto links
+- Lead details modal (auto-opens after creation) with categorized sections — Lead Info & Zoho System Metadata — "Not set in CRM" placeholders for empty fields, and a JSON payload toggle
 - Error testing panel triggering real handled Zoho API errors
 
 ### Backend (Express)

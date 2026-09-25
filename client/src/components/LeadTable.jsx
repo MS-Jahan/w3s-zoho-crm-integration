@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { Copy, Check, Inbox, Search, Trash2, Building2, RotateCcw } from 'lucide-react';
+import { Copy, Check, Inbox, Search, Trash2, Building2, RotateCcw, Pencil, ChevronLeft, ChevronRight } from 'lucide-react';
 import { SkeletonTable } from './Skeleton.jsx';
 import { deleteLead } from '../services/api';
 
 /**
- * Leads table with search, company filter, delete action.
+ * Leads table with search, company filter, pagination, edit and delete actions.
  * Record IDs are copyable; emails are mailto links.
  */
-export default function LeadTable({ leads, loading, onView, onRefresh, onError, onSuccess }) {
+export default function LeadTable({ leads, loading, onView, onRefresh, onError, onSuccess, onEdit, pagination }) {
   const [copiedId, setCopiedId] = useState(null);
   const [search, setSearch] = useState('');
   const [company, setCompany] = useState('');
@@ -47,6 +47,13 @@ export default function LeadTable({ leads, loading, onView, onRefresh, onError, 
   }
 
   const hasFilters = search || company;
+  const page = pagination?.page || 1;
+  const canPrev = page > 1;
+  const canNext = !!pagination?.moreRecords;
+
+  function changePage(delta) {
+    onRefresh(false, { page: page + delta });
+  }
 
   return (
     <div className="card bg-base-100 shadow-md animate-slide-up stagger-2">
@@ -153,6 +160,14 @@ export default function LeadTable({ leads, loading, onView, onRefresh, onError, 
                             View Record
                           </button>
                           <button
+                            className="btn btn-ghost btn-xs btn-square text-info/60 hover:text-info hover:bg-info/10 transition-colors"
+                            onClick={() => onEdit(lead.id)}
+                            aria-label={`Edit lead ${lead.fullName}`}
+                            title="Edit lead"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
                             className="btn btn-ghost btn-xs btn-square text-error/60 hover:text-error hover:bg-error/10 transition-colors"
                             onClick={() => handleDelete(lead)}
                             disabled={deletingId === lead.id}
@@ -170,6 +185,24 @@ export default function LeadTable({ leads, loading, onView, onRefresh, onError, 
             </table>
           )}
         </div>
+
+        {/* Pagination footer */}
+        {pagination && (
+          <div className="flex items-center justify-between border-t border-base-200 pt-3 mt-2">
+            <p className="text-xs opacity-60">
+              Page {page} {pagination.moreRecords ? '· more records available' : '· last page'}
+            </p>
+            <div className="flex items-center gap-2">
+              <button className="btn btn-sm btn-ghost" onClick={() => changePage(-1)} disabled={!canPrev || loading}>
+                <ChevronLeft className="h-4 w-4" /> Prev
+              </button>
+              <span className="badge badge-ghost badge-sm font-mono">{page}</span>
+              <button className="btn btn-sm btn-ghost" onClick={() => changePage(1)} disabled={!canNext || loading}>
+                Next <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

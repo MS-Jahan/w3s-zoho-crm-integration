@@ -88,12 +88,14 @@ class ZohoService {
     }
   }
 
-  /** Fetch Leads: returns Record ID, Full Name, Email, Phone, Company.
-   * @param {{search?: string, company?: string}} [opts] optional client-side filters.
+  /** Fetch Leads with pagination: returns { leads, page, perPage, moreRecords }.
+   * @param {{page?: number, perPage?: number, search?: string, company?: string}} [opts]
    */
   async getLeads(opts = {}) {
+    const page = Math.max(1, parseInt(opts.page, 10) || 1);
+    const perPage = Math.min(200, Math.max(1, parseInt(opts.perPage, 10) || 25));
     const url = `${config.apiDomain}/crm/v3/Leads`;
-    const params = { fields: 'First_Name,Last_Name,Email,Phone,Company', per_page: 200 };
+    const params = { fields: 'First_Name,Last_Name,Email,Phone,Company,Created_Time', per_page: perPage, page };
     const data = await this._request('get', url, { params });
     let leads = (data.data || []).map((r) => ({
       id: r.id,
@@ -118,7 +120,12 @@ class ZohoService {
       const c = String(opts.company).toLowerCase();
       leads = leads.filter((l) => (l.company || '').toLowerCase().includes(c));
     }
-    return leads;
+    return {
+      leads,
+      page,
+      perPage,
+      moreRecords: !!data.info?.more_records,
+    };
   }
 
   /** Create a Lead with mandatory fields validated. */
@@ -148,7 +155,9 @@ class ZohoService {
   /** Fetch a single Lead by Record ID. */
   async getLeadById(recordId) {
     const url = `${config.apiDomain}/crm/v3/Leads/${encodeURIComponent(recordId)}`;
-    const data = await this._request('get', url);
+    const data = await this._request('get', url, {
+      params: { fields: 'First_Name,Last_Name,Email,Phone,Company,Mobile,Website,Lead_Status,Lead_Source,Industry,Created_Time,Modified_Time' },
+    });
     const r = (data.data || [])[0];
     if (!r) {
       const err = new Error('Lead not found');
@@ -166,6 +175,13 @@ class ZohoService {
       company: r.Company || null,
       createdTime: r.Created_Time || null,
       modifiedTime: r.Modified_Time || null,
+      // Additional profile fields (may legitimately be empty in CRM)
+      mobile: r.Mobile || null,
+      website: r.Website || null,
+      leadStatus: r.Lead_Status || null,
+      leadSource: r.Lead_Source || null,
+      industry: r.Industry || null,
+      owner: r.Owner?.name || null,
     };
   }
 
@@ -187,6 +203,45 @@ class ZohoService {
       throw err;
     }
     return { id: row.details?.id || recordId, status: row.status || 'success', message: row.message || 'Lead deleted' };
+  }
+
+  /**
+   * Update a Lead by Record ID. Only sends the whitelisted fields provided.
+   * @param {string} recordId
+   * @param {{First_Name?: string, Last_Name?: string, Company?: string, Email?: string, Phone?: string}} fields
+   */
+  async updateLead(recordId, fields) {
+    const allowed = ['First_Name', 'Last_Name', 'Company', 'Email', 'Phone'];
+    const payload = {};
+    for (const key of allowed) {
+      if (fields[key] !== undefined && fields[key] !== null && String(fields[key]).trim() !== '') {
+        payload[key] = String(fields[key]).trim();
+      }
+    }
+    if (Object.keys(payload).length === 0) {
+      const err = new Error('No updatable fields provided');
+      err.status = 400;
+      err.zohoError = 'VALIDATION_ERROR';
+      throw err;
+    }
+    if (payload.Last_Name !== undefined && !payload.Last_Name) {
+      const err = new Error('Last Name cannot be empty');
+      err.status = 400;
+      err.zohoError = 'MANDATORY_NOT_FOUND';
+      throw err;
+    }
+
+    const url = `${config.apiDomain}/crm/v3/Leads`;
+    const body = { data: [{ id: recordId, ...payload }] };
+    const data = await this._request('put', url, { data: body });
+    const row = (data.data && data.data[0]) || {};
+    if (row.status === 'error') {
+      const err = new Error(row.message?.message || row.message || 'Zoho rejected the update');
+      err.status = 400;
+      err.zohoError = row.code || 'LEAD_UPDATE_FAILED';
+      throw err;
+    }
+    return { id: row.details?.id || recordId, status: row.status || 'success', message: row.message || 'Lead updated', updatedFields: Object.keys(payload) };
   }
 }
 

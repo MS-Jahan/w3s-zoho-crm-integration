@@ -1,18 +1,36 @@
 import { useEffect, useState } from 'react';
 import { fetchLeadById } from '../services/api';
 
+/** A detail row: shows value or a muted "Not set in CRM" placeholder. */
+function DetailRow({ label, value, mono = false }) {
+  const isSet = value !== null && value !== undefined && String(value).trim() !== '';
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2">
+      <span className="font-semibold sm:w-28 shrink-0">{label}:</span>
+      {isSet ? (
+        <span className={mono ? 'font-mono text-xs break-all' : 'break-words'}>{value}</span>
+      ) : (
+        <span className="italic opacity-40 text-xs">Not set in CRM</span>
+      )}
+    </div>
+  );
+}
+
 /**
  * Modal showing full details for a lead fetched by Record ID.
+ * Empty CRM fields render a muted placeholder instead of blank space.
  */
 export default function LeadDetailsModal({ leadId, onClose }) {
   const [lead, setLead] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showJson, setShowJson] = useState(false);
 
   useEffect(() => {
     if (!leadId) return;
     setLoading(true);
     setError(null);
+    setShowJson(false);
     fetchLeadById(leadId).then((result) => {
       setLoading(false);
       if (result.success) setLead(result.data);
@@ -43,21 +61,48 @@ export default function LeadDetailsModal({ leadId, onClose }) {
         )}
         {!loading && lead && (
           <div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm mb-4">
-              <div><span className="font-semibold">Record ID:</span> <span className="font-mono text-xs">{lead.id}</span></div>
-              <div><span className="font-semibold">Full Name:</span> {lead.fullName || '—'}</div>
-              <div><span className="font-semibold">Email:</span> {lead.email || '—'}</div>
-              <div><span className="font-semibold">Phone:</span> {lead.phone || '—'}</div>
-              <div><span className="font-semibold">Company:</span> {lead.company || '—'}</div>
-              <div><span className="font-semibold">Created:</span> {lead.createdTime || '—'}</div>
-            </div>
-            <details className="collapse collapse-arrow bg-base-200">
-              <input type="checkbox" defaultChecked />
-              <div className="collapse-title text-sm font-medium">Full JSON payload</div>
-              <div className="collapse-content">
-                <pre className="text-xs overflow-x-auto">{JSON.stringify(lead, null, 2)}</pre>
+            {/* Lead Info */}
+            <div className="mb-3">
+              <h4 className="text-xs tracking-wider uppercase opacity-50 mb-2">Lead Info</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-sm bg-base-200/60 rounded-lg p-3">
+                <DetailRow label="Record ID" value={lead.id} mono />
+                <DetailRow label="Full Name" value={lead.fullName} />
+                <DetailRow label="First Name" value={lead.firstName} />
+                <DetailRow label="Last Name" value={lead.lastName} />
+                <DetailRow label="Email" value={lead.email} />
+                <DetailRow label="Phone" value={lead.phone} />
+                <DetailRow label="Mobile" value={lead.mobile} />
+                <DetailRow label="Company" value={lead.company} />
               </div>
-            </details>
+            </div>
+
+            {/* Zoho System Metadata */}
+            <div className="mb-3">
+              <h4 className="text-xs tracking-wider uppercase opacity-50 mb-2">Zoho System Metadata</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-sm bg-base-200/60 rounded-lg p-3">
+                <DetailRow label="Lead Status" value={lead.leadStatus} />
+                <DetailRow label="Lead Source" value={lead.leadSource} />
+                <DetailRow label="Industry" value={lead.industry} />
+                <DetailRow label="Website" value={lead.website} />
+                <DetailRow label="Owner" value={lead.owner} />
+                <DetailRow label="Created" value={lead.createdTime} mono />
+                <DetailRow label="Modified" value={lead.modifiedTime} mono />
+              </div>
+            </div>
+
+            {/* JSON viewer toggle */}
+            <div className="border border-base-300 rounded-lg">
+              <button
+                className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium hover:bg-base-200/60 transition-colors rounded-lg"
+                onClick={() => setShowJson((v) => !v)}
+              >
+                <span>JSON Payload</span>
+                <span className={`transition-transform duration-200 ${showJson ? 'rotate-180' : ''}`}>▾</span>
+              </button>
+              {showJson && (
+                <pre className="text-xs overflow-x-auto px-3 pb-3 animate-fade-in">{JSON.stringify(lead, null, 2)}</pre>
+              )}
+            </div>
           </div>
         )}
       </div>

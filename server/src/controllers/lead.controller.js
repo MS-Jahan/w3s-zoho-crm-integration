@@ -2,10 +2,20 @@ const zohoService = require('../services/zoho.service');
 const asyncHandler = require('../utils/asyncHandler');
 const { validateLeadPayload } = require('../validators/lead.validator');
 
-/** GET /api/leads — list leads. Supports ?search= &company= filters. */
+/** GET /api/leads — paginated list. Supports ?page= &perPage= &search= &company=. */
 exports.getLeads = asyncHandler(async (req, res) => {
-  const leads = await zohoService.getLeads({ search: req.query.search, company: req.query.company });
-  res.json({ success: true, count: leads.length, data: leads });
+  const result = await zohoService.getLeads({
+    page: req.query.page,
+    perPage: req.query.per_page || req.query.perPage,
+    search: req.query.search,
+    company: req.query.company,
+  });
+  res.json({
+    success: true,
+    count: result.leads.length,
+    data: result.leads,
+    pagination: { page: result.page, perPage: result.perPage, moreRecords: result.moreRecords },
+  });
 });
 
 /** POST /api/leads — create a lead. Fails fast with 400 on invalid payloads. */
@@ -31,6 +41,27 @@ exports.getLeadById = asyncHandler(async (req, res) => {
 /** DELETE /api/leads/:id — delete a lead by record ID. */
 exports.deleteLead = asyncHandler(async (req, res) => {
   const result = await zohoService.deleteLead(req.params.id);
+  res.json({ success: true, data: result });
+});
+
+/** PUT /api/leads/:id — update a lead by record ID. */
+exports.updateLead = asyncHandler(async (req, res) => {
+  const { firstName, lastName, company, email, phone } = req.body || {};
+  const fields = {
+    ...(firstName !== undefined && { First_Name: firstName }),
+    ...(lastName !== undefined && { Last_Name: lastName }),
+    ...(company !== undefined && { Company: company }),
+    ...(email !== undefined && { Email: email }),
+    ...(phone !== undefined && { Phone: phone }),
+  };
+  if (email !== undefined && email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim())) {
+    const err = new Error('Email format is invalid');
+    err.status = 400;
+    err.zohoError = 'VALIDATION_ERROR';
+    err.zohoDetails = { fields: [{ field: 'email', message: 'Email format is invalid' }] };
+    throw err;
+  }
+  const result = await zohoService.updateLead(req.params.id, fields);
   res.json({ success: true, data: result });
 });
 

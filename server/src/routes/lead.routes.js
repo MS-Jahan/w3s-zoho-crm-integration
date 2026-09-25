@@ -4,6 +4,7 @@ const controller = require('../controllers/lead.controller');
 router.get('/leads', controller.getLeads);
 router.post('/leads', controller.createLead);
 router.get('/leads/:id', controller.getLeadById);
+router.put('/leads/:id', controller.updateLead);
 router.delete('/leads/:id', controller.deleteLead);
 // Demo error simulation endpoint (kept under /api root as per spec)
 router.get('/test-error', controller.testError);

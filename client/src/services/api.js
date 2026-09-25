@@ -21,7 +21,21 @@ function extractError(error) {
 export async function fetchLeads(filters = {}) {
   try {
     const res = await api.get('/leads', { params: filters });
-    return { success: true, data: res.data.data, count: res.data.count };
+    return {
+      success: true,
+      data: res.data.data,
+      count: res.data.count,
+      pagination: res.data.pagination || null,
+    };
+  } catch (error) {
+    return { success: false, ...extractError(error) };
+  }
+}
+
+export async function updateLead(id, fields) {
+  try {
+    const res = await api.put(`/leads/${encodeURIComponent(id)}`, fields);
+    return { success: true, data: res.data.data };
   } catch (error) {
     return { success: false, ...extractError(error) };
   }
