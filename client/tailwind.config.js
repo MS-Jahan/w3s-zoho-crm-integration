@@ -36,7 +36,8 @@ export default {
   },
   plugins: [require('daisyui')],
   daisyui: {
-    // Single dark-first "studio" theme per the redesign spec (zinc-950 base)
+    // 'studio' = dark zinc design-system theme; 'studio-light' keeps identical
+    // component styling on a light surface so the theme toggle works.
     themes: [
       {
         studio: {
@@ -49,13 +50,35 @@ export default {
           neutral: '#27272a',        // zinc-800
           'neutral-content': '#d4d4d8',
           'base-100': '#18181b',     // zinc-900 (cards)
-          'base-200': '#101013',     // between zinc-900 and 950
+          'base-200': '#101013',
           'base-300': '#09090b',     // zinc-950 (page bg)
           'base-content': '#e4e4e7', // zinc-200
           info: '#38bdf8',
           success: '#34d399',
           warning: '#fbbf24',
           error: '#fb7185',          // rose-400
+          '--rounded-box': '0.75rem',
+          '--rounded-btn': '0.5rem',
+        },
+      },
+      {
+        'studio-light': {
+          primary: '#6366f1',        // indigo-500
+          'primary-content': '#ffffff',
+          secondary: '#8b5cf6',      // violet-500
+          'secondary-content': '#ffffff',
+          accent: '#10b981',         // emerald-500
+          'accent-content': '#ffffff',
+          neutral: '#e4e4e7',        // zinc-200
+          'neutral-content': '#3f3f46',
+          'base-100': '#ffffff',     // cards
+          'base-200': '#f4f4f5',     // zinc-100
+          'base-300': '#e4e4e7',     // zinc-200 (page bg)
+          'base-content': '#27272a', // zinc-800
+          info: '#0ea5e9',
+          success: '#10b981',
+          warning: '#f59e0b',
+          error: '#f43f5e',          // rose-500
           '--rounded-box': '0.75rem',
           '--rounded-btn': '0.5rem',
         },

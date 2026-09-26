@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { CheckCircle, AlertCircle } from 'lucide-react';
 import Navbar from './components/Navbar.jsx';
 import LeadForm from './components/LeadForm.jsx';
@@ -8,6 +8,8 @@ import LeadEditModal from './components/LeadEditModal.jsx';
 import ErrorTester from './components/ErrorTester.jsx';
 import StatsCards from './components/StatsCards.jsx';
 import { fetchLeads, checkHealth } from './services/api';
+import useDebouncedValue from './hooks/useDebouncedValue.js';
+import useGsapIntro from './hooks/useGsapIntro.js';
 
 function getInitialTheme() {
   const saved = localStorage.getItem('theme');
@@ -27,12 +29,27 @@ export default function App() {
   const [pagination, setPagination] = useState(null);
   const [toasts, setToasts] = useState([]);
   const [theme, setTheme] = useState(getInitialTheme);
+  const [searchInput, setSearchInput] = useState('');
+  const debouncedSearch = useDebouncedValue(searchInput, 450);
+  const gsapScope = useGsapIntro();
+  const firstSearch = useRef(true);
 
-  // Apply theme to <html data-theme>
+  // Apply theme to <html data-theme>; map 'dark'→'studio', 'light'→'studio-light'
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
+    const t = theme === 'dark' ? 'studio' : 'studio-light';
+    document.documentElement.setAttribute('data-theme', t);
     localStorage.setItem('theme', theme);
   }, [theme]);
+
+  // Server-side search: refetch from page 1 when the debounced query changes
+  useEffect(() => {
+    if (firstSearch.current) {
+      firstSearch.current = false;
+      return; // skip initial mount (loadLeads already ran)
+    }
+    loadLeads(false, { resetPage: true, search: debouncedSearch });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
 
   // Poll health every 60s for the OAuth pill + token badge
   useEffect(() => {
@@ -62,7 +79,7 @@ export default function App() {
     const targetSize = opts.pageSize !== undefined ? opts.pageSize : pageSize;
     if (opts.page !== undefined || opts.resetPage) setPage(opts.page ?? 1);
     setLoading(true);
-    const result = await fetchLeads({ page: targetPage, per_page: targetSize });
+    const result = await fetchLeads({ page: targetPage, per_page: targetSize, search: opts.search ?? debouncedSearch });
     setLoading(false);
     if (result.success) {
       setLeads(result.data);
@@ -73,7 +90,7 @@ export default function App() {
       setConnected(false);
       showError(result);
     }
-  }, [addToast, showError, page, pageSize]);
+  }, [addToast, showError, page, pageSize, debouncedSearch]);
 
   useEffect(() => {
     loadLeads(false); // auto-load on first paint (no toast)
@@ -95,7 +112,7 @@ export default function App() {
   const createdToday = leads.filter((l) => (l.createdTime || '').slice(0, 10) === today).length;
 
   return (
-    <div className="min-h-screen bg-base-300 p-4 md:p-6 flex flex-col">
+    <div ref={gsapScope} className="min-h-screen bg-base-300 p-4 md:p-6 flex flex-col">
       <Navbar
         connected={connected}
         loading={loading}
@@ -123,6 +140,8 @@ export default function App() {
             pagination={pagination}
             pageSize={pageSize}
             onPageSizeChange={handlePageSizeChange}
+            searchInput={searchInput}
+            onSearchChange={setSearchInput}
           />
         </div>
       </div>

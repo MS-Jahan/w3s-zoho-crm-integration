@@ -26,21 +26,12 @@ function initials(name) {
  */
 export default function LeadTable({
   leads, loading, onView, onRefresh, onError, onSuccess, onEdit, pagination, pageSize, onPageSizeChange,
+  searchInput, onSearchChange,
 }) {
   const [copiedId, setCopiedId] = useState(null);
-  const [search, setSearch] = useState('');
   const [deletingId, setDeletingId] = useState(null);
 
-  const filtered = leads.filter((l) => {
-    const q = search.toLowerCase();
-    return (
-      !q ||
-      (l.fullName || '').toLowerCase().includes(q) ||
-      (l.email || '').toLowerCase().includes(q) ||
-      (l.company || '').toLowerCase().includes(q) ||
-      (l.id || '').toLowerCase().includes(q)
-    );
-  });
+  const filtered = leads; // search is server-side (Zoho criteria), debounced in App
 
   function copyId(id) {
     navigator.clipboard?.writeText(id).catch(() => {});
@@ -64,7 +55,7 @@ export default function LeadTable({
   const page = pagination?.page || 1;
   const canPrev = page > 1;
   const canNext = !!pagination?.moreRecords;
-  const hasFilters = !!search;
+  const hasFilters = !!searchInput;
 
   return (
     <div className="card bg-base-100/70 backdrop-blur-md border border-base-content/10 shadow-md animate-slide-up stagger-2">
@@ -76,6 +67,7 @@ export default function LeadTable({
             {!loading && (
               <span className="badge badge-sm bg-indigo-500/15 text-indigo-300 border-indigo-500/30 font-mono">{filtered.length}</span>
             )}
+            {loading && <span className="loading loading-spinner loading-xs text-indigo-400" />}
           </h2>
           <div className="flex flex-wrap items-center gap-2">
             <label className="input input-sm flex items-center gap-2 bg-base-300/50 border-base-content/15 focus-within:border-indigo-500/60 focus-within:ring-2 focus-within:ring-indigo-500/30 transition-all duration-200">
@@ -84,11 +76,11 @@ export default function LeadTable({
                 type="text"
                 className="grow w-40"
                 placeholder="Search name, email, company…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={searchInput}
+                onChange={(e) => onSearchChange(e.target.value)}
               />
               {hasFilters && (
-                <button onClick={() => setSearch('')} aria-label="Clear search" className="opacity-50 hover:opacity-100">
+                <button onClick={() => onSearchChange('')} aria-label="Clear search" className="opacity-50 hover:opacity-100">
                   <RotateCcw className="h-3 w-3" />
                 </button>
               )}

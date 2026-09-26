@@ -2,7 +2,7 @@ const zohoService = require('../services/zoho.service');
 const asyncHandler = require('../utils/asyncHandler');
 const { validateLeadPayload } = require('../validators/lead.validator');
 
-/** GET /api/leads — paginated list. Supports ?page= &perPage= &search= &company=. */
+/** GET /api/leads — paginated list. Supports ?page= &per_page= &search= (server-side Zoho criteria) &company=. */
 exports.getLeads = asyncHandler(async (req, res) => {
   const result = await zohoService.getLeads({
     page: req.query.page,

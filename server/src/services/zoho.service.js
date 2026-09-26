@@ -88,32 +88,62 @@ class ZohoService {
     }
   }
 
-  /** Fetch Leads with pagination: returns { leads, page, perPage, moreRecords }.
+  /**
+   * Fetch Leads with pagination. When `search` is provided, queries Zoho
+   * server-side via criteria (Last_Name/Email/Company contains) — falls back
+   * to post-fetch filtering if Zoho rejects the criteria.
    * @param {{page?: number, perPage?: number, search?: string, company?: string}} [opts]
    */
   async getLeads(opts = {}) {
     const page = Math.max(1, parseInt(opts.page, 10) || 1);
     const perPage = Math.min(200, Math.max(1, parseInt(opts.perPage, 10) || 25));
     const url = `${config.apiDomain}/crm/v3/Leads`;
-    const params = { fields: 'First_Name,Last_Name,Email,Phone,Company,Created_Time', per_page: perPage, page };
-    const data = await this._request('get', url, { params });
-    let leads = (data.data || []).map((r) => ({
+
+    const mapLead = (r) => ({
       id: r.id,
       fullName: [r.First_Name, r.Last_Name].filter(Boolean).join(' ') || r.Last_Name || '—',
       email: r.Email || null,
       phone: r.Phone || null,
       company: r.Company || null,
       createdTime: r.Created_Time || null,
-    }));
+    });
 
-    // Optional filters (server-side convenience; applied post-fetch)
-    if (opts.search) {
-      const q = String(opts.search).toLowerCase();
+    const q = opts.search ? String(opts.search).trim() : '';
+
+    if (q) {
+      // Server-side search via the dedicated /search endpoint. Note: Zoho's
+      // 'equals' operator behaves like 'contains' per the Search Records docs.
+      const escaped = q.replace(/["'\\;()*]/g, ''); // strip chars that break criteria
+      if (escaped) {
+        const criteria = `((Last_Name:equals:${escaped}) or (First_Name:equals:${escaped}) or (Email:equals:${escaped}) or (Company:equals:${escaped}))`;
+        try {
+          const params = { fields: 'First_Name,Last_Name,Email,Phone,Company,Created_Time', per_page: perPage, page, criteria };
+          const data = await this._request('get', `${url}/search`, { params });
+          return {
+            leads: (data.data || []).map(mapLead),
+            page,
+            perPage,
+            moreRecords: !!data.info?.more_records,
+          };
+        } catch (error) {
+          // Criteria unsupported / no results edge cases — fall through to post-fetch fallback.
+          if (error.status !== 400) throw error;
+        }
+      }
+    }
+
+    // Default (no search or criteria fallback): plain paginated fetch + post-filter
+    const params = { fields: 'First_Name,Last_Name,Email,Phone,Company,Created_Time', per_page: perPage, page };
+    const data = await this._request('get', url, { params });
+    let leads = (data.data || []).map(mapLead);
+
+    if (q) {
+      const lq = q.toLowerCase();
       leads = leads.filter(
         (l) =>
-          (l.fullName || '').toLowerCase().includes(q) ||
-          (l.email || '').toLowerCase().includes(q) ||
-          (l.company || '').toLowerCase().includes(q)
+          (l.fullName || '').toLowerCase().includes(lq) ||
+          (l.email || '').toLowerCase().includes(lq) ||
+          (l.company || '').toLowerCase().includes(lq)
       );
     }
     if (opts.company) {
