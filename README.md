@@ -36,6 +36,12 @@ See `server/.env.example`:
 | `ZOHO_API_DOMAIN` | `https://www.zohoapis.com` |
 | `PORT` | `5000` |
 
+Optional (client, `client/.env`):
+
+| Variable | Example | Purpose |
+|---|---|---|
+| `VITE_ZOHO_CRM_UI_DOMAIN` | `https://crm.zoho.com/crm/org/12345678/tab/Leads` | Enables "Open in Zoho CRM" deep link in the details modal |
+
 Never commit `.env` or hardcode tokens.
 
 ### 3. Run
@@ -110,7 +116,10 @@ Response:
 ## Features
 
 ### Dashboard (React + DaisyUI)
-- Light/dark theme toggle (persisted), stats cards (Total Leads / Created Today / API Status)
+- Linear/Vercel-style dark zinc "Studio" theme (glassmorphism cards, gradient accents), light mode still available
+- Stats cards: Total Leads, Ingested Today, API Health with live token badge ("Token Valid · Auto Refresh ON · 58m") polled every 60s
+- Lead rows: initials avatars (deterministic gradient), company pills, truncated copyable Record IDs
+- Page-size selector (10/25/50) wired to backend `per_page`
 - Shimmer skeleton loading states, staggered entrance animations, animated toasts
 - **Search** across name, email, and Record ID; **company filter** with autocomplete suggestions
 - **Pagination** (25/page, Prev/Next with Zoho `more_records` awareness)

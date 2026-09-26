@@ -36,7 +36,31 @@ export default {
   },
   plugins: [require('daisyui')],
   daisyui: {
-    themes: ['light', 'dark'],
-    darkTheme: 'dark',
+    // Single dark-first "studio" theme per the redesign spec (zinc-950 base)
+    themes: [
+      {
+        studio: {
+          primary: '#818cf8',        // indigo-400
+          'primary-content': '#1c1c22',
+          secondary: '#a78bfa',      // violet-400
+          'secondary-content': '#1c1c22',
+          accent: '#34d399',         // emerald-400
+          'accent-content': '#1c1c22',
+          neutral: '#27272a',        // zinc-800
+          'neutral-content': '#d4d4d8',
+          'base-100': '#18181b',     // zinc-900 (cards)
+          'base-200': '#101013',     // between zinc-900 and 950
+          'base-300': '#09090b',     // zinc-950 (page bg)
+          'base-content': '#e4e4e7', // zinc-200
+          info: '#38bdf8',
+          success: '#34d399',
+          warning: '#fbbf24',
+          error: '#fb7185',          // rose-400
+          '--rounded-box': '0.75rem',
+          '--rounded-btn': '0.5rem',
+        },
+      },
+    ],
+    darkTheme: 'studio',
   },
 };

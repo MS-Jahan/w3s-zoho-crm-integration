@@ -36,7 +36,7 @@ export function SkeletonForm() {
 
 export function SkeletonStat() {
   return (
-    <div className="card bg-base-100 shadow-md">
+    <div className="card bg-base-100/70 backdrop-blur-md border border-base-content/10">
       <div className="card-body p-4 space-y-2">
         <SkeletonLine className="h-3 w-16" />
         <SkeletonLine className="h-7 w-12" />

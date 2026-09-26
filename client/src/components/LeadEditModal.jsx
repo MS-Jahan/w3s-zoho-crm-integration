@@ -80,7 +80,7 @@ export default function LeadEditModal({ leadId, onClose, onSaved, onError }) {
 
   return (
     <div className="modal modal-open animate-fade-in">
-      <div className="modal-box max-w-md animate-scale-in">
+      <div className="modal-box max-w-md bg-base-100 border border-base-content/10 animate-scale-in">
         <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onClick={onClose}>✕</button>
         <h3 className="font-bold text-lg mb-1 flex items-center gap-2">
           <Pencil className="h-4 w-4 text-primary" /> Edit Lead

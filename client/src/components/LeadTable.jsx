@@ -1,31 +1,46 @@
 import { useState } from 'react';
-import { Copy, Check, Inbox, Search, Trash2, Building2, RotateCcw, Pencil, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Copy, Check, Inbox, Search, Trash2, RotateCcw, Pencil, ChevronLeft, ChevronRight } from 'lucide-react';
 import { SkeletonTable } from './Skeleton.jsx';
 import { deleteLead } from '../services/api';
 
+/** Deterministic pastel gradient from lead name for the initials avatar. */
+function avatarStyle(name) {
+  const hues = ['from-indigo-500 to-violet-600', 'from-emerald-500 to-teal-600', 'from-rose-500 to-orange-600', 'from-sky-500 to-cyan-600', 'from-fuchsia-500 to-pink-600', 'from-amber-500 to-yellow-600'];
+  let hash = 0;
+  for (const ch of String(name)) hash = (hash * 31 + ch.charCodeAt(0)) % 997;
+  return hues[hash % hues.length];
+}
+
+function initials(name) {
+  return String(name || '?')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join('') || '?';
+}
+
 /**
- * Leads table with search, company filter, pagination, edit and delete actions.
- * Record IDs are copyable; emails are mailto links.
+ * CRM Leads Management table: search toolbar, avatars, company pills,
+ * copy ID, edit/delete actions, pagination with page-size selector.
  */
-export default function LeadTable({ leads, loading, onView, onRefresh, onError, onSuccess, onEdit, pagination }) {
+export default function LeadTable({
+  leads, loading, onView, onRefresh, onError, onSuccess, onEdit, pagination, pageSize, onPageSizeChange,
+}) {
   const [copiedId, setCopiedId] = useState(null);
   const [search, setSearch] = useState('');
-  const [company, setCompany] = useState('');
   const [deletingId, setDeletingId] = useState(null);
 
-  // Client-side instant filtering (also supported server-side via ?search= &company=)
   const filtered = leads.filter((l) => {
     const q = search.toLowerCase();
-    const matchSearch =
+    return (
       !q ||
       (l.fullName || '').toLowerCase().includes(q) ||
       (l.email || '').toLowerCase().includes(q) ||
-      (l.id || '').toLowerCase().includes(q);
-    const matchCompany = !company || (l.company || '').toLowerCase().includes(company.toLowerCase());
-    return matchSearch && matchCompany;
+      (l.company || '').toLowerCase().includes(q) ||
+      (l.id || '').toLowerCase().includes(q)
+    );
   });
-
-  const companies = [...new Set(leads.map((l) => l.company).filter(Boolean))].sort();
 
   function copyId(id) {
     navigator.clipboard?.writeText(id).catch(() => {});
@@ -40,79 +55,68 @@ export default function LeadTable({ leads, loading, onView, onRefresh, onError, 
     setDeletingId(null);
     if (result.success) {
       onSuccess(`Lead "${lead.fullName}" deleted`);
-      onRefresh(false); // refresh without toast
+      onRefresh(false);
     } else {
       onError(result);
     }
   }
 
-  const hasFilters = search || company;
   const page = pagination?.page || 1;
   const canPrev = page > 1;
   const canNext = !!pagination?.moreRecords;
-
-  function changePage(delta) {
-    onRefresh(false, { page: page + delta });
-  }
+  const hasFilters = !!search;
 
   return (
-    <div className="card bg-base-100 shadow-md animate-slide-up stagger-2">
-      <div className="card-body">
+    <div className="card bg-base-100/70 backdrop-blur-md border border-base-content/10 shadow-md animate-slide-up stagger-2">
+      <div className="card-body p-5">
+        {/* Toolbar */}
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="card-title text-lg">
-            CRM Leads
+          <h2 className="card-title text-base">
+            Leads Management
             {!loading && (
-              <span className="badge badge-ghost badge-sm">{filtered.length}{hasFilters && ` of ${leads.length}`}</span>
+              <span className="badge badge-sm bg-indigo-500/15 text-indigo-300 border-indigo-500/30 font-mono">{filtered.length}</span>
             )}
           </h2>
-          {/* Search + filter controls */}
           <div className="flex flex-wrap items-center gap-2">
-            <label className="input input-bordered input-sm flex items-center gap-2 focus-within:input-primary transition-colors">
-              <Search className="h-3.5 w-3.5 opacity-50" />
+            <label className="input input-sm flex items-center gap-2 bg-base-300/50 border-base-content/15 focus-within:border-indigo-500/60 focus-within:ring-2 focus-within:ring-indigo-500/30 transition-all duration-200">
+              <Search className="h-3.5 w-3.5 opacity-40" />
               <input
                 type="text"
-                className="grow w-36"
-                placeholder="Search name, email, ID…"
+                className="grow w-40"
+                placeholder="Search name, email, company…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
+              {hasFilters && (
+                <button onClick={() => setSearch('')} aria-label="Clear search" className="opacity-50 hover:opacity-100">
+                  <RotateCcw className="h-3 w-3" />
+                </button>
+              )}
             </label>
-            <label className="input input-bordered input-sm flex items-center gap-2 focus-within:input-primary transition-colors">
-              <Building2 className="h-3.5 w-3.5 opacity-50" />
-              <input
-                type="text"
-                className="grow w-28"
-                placeholder="Filter company…"
-                value={company}
-                onChange={(e) => setCompany(e.target.value)}
-                list="company-list"
-              />
-              <datalist id="company-list">
-                {companies.map((c) => <option key={c} value={c} />)}
-              </datalist>
-            </label>
-            {hasFilters && (
-              <button
-                className="btn btn-ghost btn-sm btn-square"
-                onClick={() => { setSearch(''); setCompany(''); }}
-                aria-label="Clear filters"
-                title="Clear filters"
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-              </button>
-            )}
+            {/* Page size selector */}
+            <select
+              className="select select-sm bg-base-300/50 border-base-content/15 focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/30 transition-all duration-200"
+              value={pageSize}
+              onChange={(e) => onPageSizeChange(Number(e.target.value))}
+              aria-label="Records per page"
+            >
+              {[10, 25, 50].map((n) => (
+                <option key={n} value={n}>{n} / page</option>
+              ))}
+            </select>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Table */}
+        <div className="overflow-x-auto -mx-1">
           {loading ? (
             <SkeletonTable rows={6} />
           ) : (
-            <table className="table table-zebra table-sm">
+            <table className="table table-sm">
               <thead>
-                <tr>
+                <tr className="text-[11px] uppercase tracking-wider text-base-content/50 border-base-content/10">
+                  <th>Lead</th>
                   <th>Record ID</th>
-                  <th>Full Name</th>
                   <th>Email</th>
                   <th>Company</th>
                   <th className="text-right">Actions</th>
@@ -122,45 +126,60 @@ export default function LeadTable({ leads, loading, onView, onRefresh, onError, 
                 {filtered.length === 0 ? (
                   <tr>
                     <td colSpan="5">
-                      <div className="flex flex-col items-center gap-2 py-10 opacity-60">
-                        <Inbox className="h-10 w-10" />
-                        <p className="font-medium">{hasFilters ? 'No matches' : 'No leads yet'}</p>
-                        <p className="text-sm">
-                          {hasFilters ? 'Try adjusting or clearing the filters.' : 'Create your first lead using the form on the left.'}
-                        </p>
+                      <div className="flex flex-col items-center gap-2 py-12 text-base-content/40">
+                        <div className="w-14 h-14 rounded-2xl bg-base-content/5 flex items-center justify-center">
+                          <Inbox className="h-7 w-7" />
+                        </div>
+                        <p className="font-medium text-base-content/60">{hasFilters ? 'No matches' : 'No leads yet'}</p>
+                        <p className="text-sm">{hasFilters ? 'Try adjusting the search.' : 'Create your first lead using the form on the left.'}</p>
                       </div>
                     </td>
                   </tr>
                 ) : (
                   filtered.map((lead, i) => (
-                    <tr key={lead.id} className="animate-fade-in hover:bg-base-200/70" style={{ animationDelay: `${i * 30}ms` }}>
+                    <tr key={lead.id} className="animate-fade-in hover:bg-base-content/[0.04] border-base-content/[0.06] transition-colors" style={{ animationDelay: `${i * 30}ms` }}>
+                      {/* Avatar + name */}
                       <td>
-                        <span className="inline-flex items-center gap-1.5">
-                          <span className="font-mono text-xs">{lead.id}</span>
+                        <div className="flex items-center gap-2.5">
+                          <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${avatarStyle(lead.fullName)} flex items-center justify-center text-white text-[11px] font-bold shrink-0 shadow-md`}>
+                            {initials(lead.fullName)}
+                          </div>
+                          <span className="font-semibold text-sm">{lead.fullName}</span>
+                        </div>
+                      </td>
+                      {/* Record ID mono + copy */}
+                      <td>
+                        <div className="inline-flex items-center gap-1.5" title={lead.id}>
+                          <span className="font-mono text-xs text-base-content/60">{lead.id.slice(0, 12)}…</span>
                           <button
-                            className="btn btn-ghost btn-xs btn-square opacity-50 hover:opacity-100"
+                            className="btn btn-ghost btn-xs btn-square opacity-40 hover:opacity-100"
                             onClick={() => copyId(lead.id)}
                             aria-label={`Copy ID ${lead.id}`}
-                            title="Copy Record ID"
                           >
-                            {copiedId === lead.id ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
+                            {copiedId === lead.id ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
                           </button>
-                        </span>
+                        </div>
                       </td>
-                      <td className="font-medium">{lead.fullName}</td>
                       <td className="text-xs">
                         {lead.email ? (
-                          <a href={`mailto:${lead.email}`} className="link link-hover link-primary">{lead.email}</a>
-                        ) : '—'}
+                          <a href={`mailto:${lead.email}`} className="link link-hover text-base-content/70 hover:text-indigo-300 transition-colors">{lead.email}</a>
+                        ) : <span className="italic text-base-content/30 text-xs">Not set</span>}
                       </td>
-                      <td>{lead.company || '—'}</td>
+                      <td>
+                        {lead.company ? (
+                          <span className="badge badge-sm bg-base-content/[0.06] border-base-content/10 text-base-content/70 font-normal">{lead.company}</span>
+                        ) : <span className="italic text-base-content/30 text-xs">Not set</span>}
+                      </td>
                       <td className="text-right">
-                        <div className="inline-flex items-center gap-1">
-                          <button className="btn btn-ghost btn-xs text-primary transition-transform hover:scale-105" onClick={() => onView(lead.id)}>
-                            View Record
+                        <div className="inline-flex items-center gap-0.5">
+                          <button
+                            className="btn btn-ghost btn-xs text-indigo-300 hover:bg-indigo-500/10 transition-all duration-200"
+                            onClick={() => onView(lead.id)}
+                          >
+                            View Details
                           </button>
                           <button
-                            className="btn btn-ghost btn-xs btn-square text-info/60 hover:text-info hover:bg-info/10 transition-colors"
+                            className="btn btn-ghost btn-xs btn-square text-sky-400/60 hover:text-sky-300 hover:bg-sky-500/10 transition-colors"
                             onClick={() => onEdit(lead.id)}
                             aria-label={`Edit lead ${lead.fullName}`}
                             title="Edit lead"
@@ -168,7 +187,7 @@ export default function LeadTable({ leads, loading, onView, onRefresh, onError, 
                             <Pencil className="h-3.5 w-3.5" />
                           </button>
                           <button
-                            className="btn btn-ghost btn-xs btn-square text-error/60 hover:text-error hover:bg-error/10 transition-colors"
+                            className="btn btn-ghost btn-xs btn-square text-rose-400/60 hover:text-rose-300 hover:bg-rose-500/10 transition-colors"
                             onClick={() => handleDelete(lead)}
                             disabled={deletingId === lead.id}
                             aria-label={`Delete lead ${lead.fullName}`}
@@ -188,16 +207,25 @@ export default function LeadTable({ leads, loading, onView, onRefresh, onError, 
 
         {/* Pagination footer */}
         {pagination && (
-          <div className="flex items-center justify-between border-t border-base-200 pt-3 mt-2">
-            <p className="text-xs opacity-60">
-              Page {page} {pagination.moreRecords ? '· more records available' : '· last page'}
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-base-content/10 pt-3 mt-2">
+            <p className="text-xs text-base-content/40">
+              Page <span className="font-mono text-base-content/70">{page}</span>
+              {pagination.moreRecords ? ' · more records available' : ' · last page'}
             </p>
-            <div className="flex items-center gap-2">
-              <button className="btn btn-sm btn-ghost" onClick={() => changePage(-1)} disabled={!canPrev || loading}>
+            <div className="flex items-center gap-1.5">
+              <button
+                className="btn btn-sm btn-ghost border-base-content/10 hover:border-indigo-500/40 disabled:opacity-30 transition-all duration-200"
+                onClick={() => onRefresh(false, { page: page - 1 })}
+                disabled={!canPrev || loading}
+              >
                 <ChevronLeft className="h-4 w-4" /> Prev
               </button>
-              <span className="badge badge-ghost badge-sm font-mono">{page}</span>
-              <button className="btn btn-sm btn-ghost" onClick={() => changePage(1)} disabled={!canNext || loading}>
+              <span className="badge badge-sm bg-indigo-500/15 text-indigo-300 border-indigo-500/30 font-mono">{page}</span>
+              <button
+                className="btn btn-sm btn-ghost border-base-content/10 hover:border-indigo-500/40 disabled:opacity-30 transition-all duration-200"
+                onClick={() => onRefresh(false, { page: page + 1 })}
+                disabled={!canNext || loading}
+              >
                 Next <ChevronRight className="h-4 w-4" />
               </button>
             </div>
