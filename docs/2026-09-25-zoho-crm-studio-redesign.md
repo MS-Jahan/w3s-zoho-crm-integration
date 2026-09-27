@@ -43,7 +43,7 @@ Detailed Component Requirements:
 - 3 interactive triggers styled with status pills:
   - "Simulate 401 Unauthorized" (Expired / Invalid Token) -> Rose badge `401 INVALID_TOKEN`
   - "Simulate 400 Bad Request" (Missing Mandatory Field) -> Amber badge `400 MANDATORY_NOT_FOUND`
-  - "Simulate 404 Not Found" (Invalid CRM Module) -> Orange badge `404 INVALID_MODULE`
+  - "Simulate 400 · Invalid Module" (Invalid CRM Module; Zoho returns HTTP 400) -> Orange badge `400 INVALID_MODULE`
 - Triggering these must cleanly display handled error responses in an expandable inline code block or toast without crashing the UI.
 
 5. Right Column - "CRM Leads Management" Table:

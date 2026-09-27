@@ -32,7 +32,10 @@ class ZohoService {
 
     if (!data.access_token) {
       const err = new Error(data.error || 'Failed to refresh Zoho access token');
-      err.zohoError = data.error || 'INVALID_CREDENTIALS';
+      // Keep codes UPPER_SNAKE like the rest of the API; preserve Zoho's
+      // raw snake_case string (e.g. "invalid_client_secret") in details.
+      err.zohoError = 'INVALID_CREDENTIALS';
+      if (data.error) err.zohoDetails = { zoho_error: data.error };
       err.status = 401;
       throw err;
     }

@@ -70,7 +70,7 @@ exports.updateLead = asyncHandler(async (req, res) => {
  * Demo error scenarios:
  *  - token:  request with an invalid bearer token → Zoho 401
  *  - field:  create lead without Last_Name → Zoho 400 MANDATORY_NOT_FOUND
- *  - module: GET /crm/v3/InvalidModuleName → Zoho 404
+ *  - module: GET /crm/v3/InvalidModuleName → Zoho 400 INVALID_MODULE
  */
 exports.testError = asyncHandler(async (req, res) => {
   const type = req.query.type || req.query.scenario;

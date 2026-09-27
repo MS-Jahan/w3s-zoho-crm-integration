@@ -4,7 +4,7 @@ import { simulateError } from '../services/api';
 const SCENARIOS = [
   { type: 'token', label: 'Simulate 401 Unauthorized', sub: 'Expired / invalid token', code: '401 INVALID_TOKEN', badge: 'badge-error' },
   { type: 'field', label: 'Simulate 400 Bad Request', sub: 'Missing mandatory field', code: '400 MANDATORY_NOT_FOUND', badge: 'badge-warning' },
-  { type: 'module', label: 'Simulate 404 Not Found', sub: 'Invalid CRM module', code: '404 INVALID_MODULE', badge: 'badge-error' },
+  { type: 'module', label: 'Simulate 400 · Invalid Module', sub: 'Invalid CRM module (Zoho returns HTTP 400)', code: '400 INVALID_MODULE', badge: 'badge-error' },
 ];
 
 /**
