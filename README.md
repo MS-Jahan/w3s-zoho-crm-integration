@@ -62,7 +62,7 @@ The Vite dev server proxies `/api` → `http://localhost:5000`.
 |---|---|---|
 | GET | `/api/health` | Health: version, uptime, Zoho config, token-cache state |
 | GET | `/api/leads` | Paginated list — `?page=` & `per_page=` (default 25, max 200), `?search=`, `?company=` |
-| POST | `/api/leads` | Create lead (validated: `lastName`, `company` required, email format) |
+| POST | `/api/leads` | Create lead (validated: `lastName`, `company` required, email format; duplicate email → `409 DUPLICATE_DATA` with `details.existingId`) |
 | GET | `/api/leads/:id` | Get lead by Record ID (incl. mobile, website, lead status/source, industry, owner) |
 | PUT | `/api/leads/:id` | Update lead fields (`firstName`, `lastName`, `company`, `email`, `phone`) |
 | DELETE | `/api/leads/:id` | Delete lead by Record ID |

@@ -4,7 +4,7 @@ const config = require('./config/zoho.config');
 const zohoService = require('./services/zoho.service');
 const leadRoutes = require('./routes/lead.routes');
 const errorHandler = require('./middlewares/errorHandler');
-const { requestLogger, securityHeaders, rateLimit, gracefulShutdown } = require('./middlewares');
+const { requestLogger, securityHeaders, rateLimit, tenantContext, gracefulShutdown } = require('./middlewares');
 const logger = require('./utils/logger');
 
 const app = express();
@@ -14,6 +14,7 @@ app.use(securityHeaders);
 app.use(cors({ origin: config.clientOrigin }));
 app.use(express.json({ limit: '100kb' }));
 app.use(requestLogger);
+app.use(tenantContext);
 app.use('/api', rateLimit({ windowMs: 60_000, max: 120 }));
 
 // Health check: uptime + token cache state (never exposes the token itself)

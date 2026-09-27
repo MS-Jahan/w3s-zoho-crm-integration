@@ -103,6 +103,16 @@ export default function App() {
     setSelectedLeadId(data.id); // verify by fetching the record back by ID
   }
 
+  /** Duplicate submit (409): surface the existing record instead of a dead-end error. */
+  function handleCreateError(err) {
+    if (err.code === 'DUPLICATE_DATA' && err.details?.existingId) {
+      addToast('error', 'DUPLICATE_DATA', `${err.message} — opening the existing record.`);
+      setSelectedLeadId(err.details.existingId);
+      return;
+    }
+    showError(err);
+  }
+
   function handlePageSizeChange(size) {
     setPageSize(size);
     loadLeads(false, { resetPage: true, pageSize: size });
@@ -125,7 +135,7 @@ export default function App() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4 flex-1">
         <div className="lg:col-span-1 space-y-4">
-          <LeadForm onCreated={handleCreated} onError={showError} />
+          <LeadForm onCreated={handleCreated} onError={handleCreateError} />
           <ErrorTester onError={showError} />
         </div>
         <div className="lg:col-span-2">

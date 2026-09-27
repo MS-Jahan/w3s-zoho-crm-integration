@@ -9,7 +9,13 @@ const api = axios.create({
 function extractError(error) {
   const payload = error.response?.data;
   if (payload?.error) {
-    return { code: payload.error.code, message: payload.error.message, status: payload.error.status };
+    return {
+      code: payload.error.code,
+      message: payload.error.message,
+      status: payload.error.status,
+      ...(payload.error.details ? { details: payload.error.details } : {}),
+      ...(payload.error.retryAfter !== undefined ? { retryAfter: payload.error.retryAfter } : {}),
+    };
   }
   return {
     code: error.code || 'NETWORK_ERROR',

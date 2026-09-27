@@ -1,10 +1,13 @@
-const zohoService = require('../services/zoho.service');
+const { getZohoService } = require('../services/zoho.service');
 const asyncHandler = require('../utils/asyncHandler');
 const { validateLeadPayload } = require('../validators/lead.validator');
 
+/** Resolve the per-tenant Zoho service for this request (defaults to 'default'). */
+const svc = (req) => getZohoService(req.tenantId);
+
 /** GET /api/leads — paginated list. Supports ?page= &per_page= &search= (server-side Zoho criteria) &company=. */
 exports.getLeads = asyncHandler(async (req, res) => {
-  const result = await zohoService.getLeads({
+  const result = await svc(req).getLeads({
     page: req.query.page,
     perPage: req.query.per_page || req.query.perPage,
     search: req.query.search,
@@ -18,7 +21,7 @@ exports.getLeads = asyncHandler(async (req, res) => {
   });
 });
 
-/** POST /api/leads — create a lead. Fails fast with 400 on invalid payloads. */
+/** POST /api/leads — create a lead. Fails fast with 400 on invalid payloads, 409 on duplicate email. */
 exports.createLead = asyncHandler(async (req, res) => {
   const { valid, errors, clean } = validateLeadPayload(req.body || {});
   if (!valid) {
@@ -28,19 +31,19 @@ exports.createLead = asyncHandler(async (req, res) => {
     err.zohoDetails = { fields: errors };
     throw err;
   }
-  const result = await zohoService.createLead(clean);
+  const result = await svc(req).createLead(clean);
   res.status(201).json({ success: true, data: result });
 });
 
 /** GET /api/leads/:id — fetch one lead by record ID. */
 exports.getLeadById = asyncHandler(async (req, res) => {
-  const lead = await zohoService.getLeadById(req.params.id);
+  const lead = await svc(req).getLeadById(req.params.id);
   res.json({ success: true, data: lead });
 });
 
 /** DELETE /api/leads/:id — delete a lead by record ID. */
 exports.deleteLead = asyncHandler(async (req, res) => {
-  const result = await zohoService.deleteLead(req.params.id);
+  const result = await svc(req).deleteLead(req.params.id);
   res.json({ success: true, data: result });
 });
 
@@ -61,7 +64,7 @@ exports.updateLead = asyncHandler(async (req, res) => {
     err.zohoDetails = { fields: [{ field: 'email', message: 'Email format is invalid' }] };
     throw err;
   }
-  const result = await zohoService.updateLead(req.params.id, fields);
+  const result = await svc(req).updateLead(req.params.id, fields);
   res.json({ success: true, data: result });
 });
 
@@ -74,6 +77,7 @@ exports.updateLead = asyncHandler(async (req, res) => {
  */
 exports.testError = asyncHandler(async (req, res) => {
   const type = req.query.type || req.query.scenario;
+  const service = svc(req);
 
   switch (type) {
     case 'token': {
@@ -85,8 +89,7 @@ exports.testError = asyncHandler(async (req, res) => {
     case 'field':
     case 'validation': {
       // Bypass validation by calling Zoho with a payload missing Last_Name
-      const apiDomain = require('../config/zoho.config').apiDomain;
-      await zohoService._request('post', `${apiDomain}/crm/v3/Leads`, {
+      await service._request('post', `${service.apiDomain}/crm/v3/Leads`, {
         data: { data: [{ Company: 'Error Demo Co' }] },
       });
       // If Zoho unexpectedly accepted it, still surface a demo error
@@ -96,7 +99,7 @@ exports.testError = asyncHandler(async (req, res) => {
       throw err;
     }
     case 'module': {
-      await zohoService.getInvalidModule();
+      await service.getInvalidModule();
       const err = new Error('Module not found');
       err.status = 404;
       err.zohoError = 'INVALID_MODULE';

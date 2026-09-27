@@ -47,6 +47,25 @@ function rateLimit({ windowMs = 60_000, max = 120 } = {}) {
   };
 }
 
+/**
+ * Tenant context: reads an optional `X-Client-Id` header, sanitizes it, and
+ * attaches `req.tenantId` (defaults to 'default'). Unknown tenants fail fast
+ * with 400 UNKNOWN_TENANT when their service is first resolved. Credential
+ * lookup itself lives in resolveTenantCredentials (zoho.service) — point it
+ * at a vault/DB to onboard real tenants.
+ */
+function tenantContext(req, _res, next) {
+  const raw = String(req.headers['x-client-id'] || 'default').trim().toLowerCase();
+  if (!/^[a-z0-9_-]{1,64}$/.test(raw)) {
+    const err = new Error('Invalid X-Client-Id header (use 1-64 chars: a-z, 0-9, _ -)');
+    err.status = 400;
+    err.zohoError = 'INVALID_TENANT_ID';
+    return next(err);
+  }
+  req.tenantId = raw;
+  next();
+}
+
 /** Graceful shutdown on SIGTERM/SIGINT. */
 function gracefulShutdown(server, loggerRef) {
   const shutdown = (signal) => {
@@ -61,4 +80,4 @@ function gracefulShutdown(server, loggerRef) {
   process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
-module.exports = { requestLogger, securityHeaders, rateLimit, gracefulShutdown };
+module.exports = { requestLogger, securityHeaders, rateLimit, tenantContext, gracefulShutdown };
