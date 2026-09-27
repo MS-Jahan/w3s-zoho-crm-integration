@@ -2,6 +2,12 @@
 
 Full-stack integration between Node.js/Express and Zoho CRM, paired with a React (Vite) + DaisyUI frontend.
 
+## Demo Videos
+
+- Demo Video 1: https://www.loom.com/share/19affcc2fb934f519ffa709592961fe1
+- Demo Video 2: https://www.loom.com/share/3097c64da494438e8e978ae411f6888b
+- Demo Video 3: https://www.loom.com/share/20c3067aae6d46f7a727be953072859f
+
 ## Tech Stack
 
 - **Backend:** Node.js, Express, Axios, dotenv, cors
