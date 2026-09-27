@@ -137,6 +137,12 @@ Response:
 
 Zoho errors (e.g. `INVALID_TOKEN`, `MANDATORY_NOT_FOUND`, `INVALID_MODULE`) are parsed by the centralized error middleware and returned as clean JSON; the frontend shows matching toasts.
 
+Behavior notes:
+
+- Creating a lead whose email already exists returns `409 DUPLICATE_DATA` with `details.existingId`; the UI opens the existing record.
+- Transient failures (429, network errors, 5xx on reads) are retried with backoff; `Retry-After` is honored when present. Create/update calls are never auto-retried.
+- Optional `X-Client-Id` request header selects a tenant (default: `default`); each tenant resolves its own credentials and token cache via `getZohoService()`. Unknown tenants return `400 UNKNOWN_TENANT`.
+
 Example validation error:
 ```json
 {
