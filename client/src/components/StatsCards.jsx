@@ -69,9 +69,13 @@ export default function StatsCards({ totalLeads, createdToday, health, loading }
               API Health
             </p>
             <p className="text-lg font-bold leading-tight">{apiOk ? 'Healthy' : 'Degraded'}</p>
-            <p className={`text-[11px] inline-flex items-center gap-1 ${tokenOk ? 'text-emerald-400' : 'text-amber-400'}`}>
-              {tokenOk ? <ShieldCheck className="h-3 w-3" /> : <ShieldAlert className="h-3 w-3" />}
-              {tokenOk ? `Token Valid · Auto Refresh ON (${Math.round((health.tokenCache.expiresInSec || 0) / 60)}m)` : 'Token not cached yet'}
+            <p className={`text-[11px] inline-flex items-center gap-1 ${apiOk ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {apiOk ? <ShieldCheck className="h-3 w-3" /> : <ShieldAlert className="h-3 w-3" />}
+              {tokenOk
+                ? `Token Valid · Auto Refresh ON (${Math.round((health.tokenCache.expiresInSec || 0) / 60)}m)`
+                : apiOk
+                  ? 'Configured · Auto Refresh Ready'
+                  : 'API Not Configured'}
             </p>
           </div>
         </div>

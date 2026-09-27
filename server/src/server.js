@@ -22,7 +22,7 @@ app.get('/api/health', (_req, res) => {
   res.json({
     success: true,
     status: 'ok',
-    version: require('../package.json').version,
+    version: process.env.npm_package_version || '1.0.0',
     uptimeSeconds: Math.round(process.uptime()),
     zohoConfigured: config.validate(),
     tokenCache: {
@@ -50,7 +50,14 @@ app.use(errorHandler);
 if (require.main === module) {
   const server = app.listen(config.port, () => {
     logger.info(`Zoho CRM integration server listening on http://localhost:${config.port}`);
-    if (!config.validate()) logger.warn('Zoho env vars incomplete — API calls will fail auth');
+    if (config.validate()) {
+      // Warm up the token cache on startup to avoid cold-start UX latency
+      zohoService.getAccessToken().catch((err) => {
+        logger.warn(`Failed initial token warm-up: ${err.message}`);
+      });
+    } else {
+      logger.warn('Zoho env vars incomplete — API calls will fail auth');
+    }
   });
   gracefulShutdown(server, logger);
 }

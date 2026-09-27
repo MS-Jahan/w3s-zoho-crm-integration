@@ -81,6 +81,10 @@ exports.testError = asyncHandler(async (req, res) => {
 
   switch (type) {
     case 'token': {
+      // Dispatch a real request to Zoho API using an invalid bearer token to trigger an authentic 401 response
+      await service._request('get', `${service.apiDomain}/crm/v3/Leads`, {
+        token: 'INVALID_OAUTH_TOKEN_DEMO_EXPIRED',
+      });
       const err = new Error('Authentication failed: invalid or expired OAuth token');
       err.status = 401;
       err.zohoError = 'INVALID_TOKEN';

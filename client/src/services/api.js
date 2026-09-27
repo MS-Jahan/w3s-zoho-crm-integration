@@ -5,6 +5,12 @@ const api = axios.create({
   timeout: 30000,
 });
 
+api.interceptors.request.use((reqConfig) => {
+  const tenantId = localStorage.getItem('active_tenant_id') || 'default';
+  reqConfig.headers['X-Client-Id'] = tenantId;
+  return reqConfig;
+});
+
 /** Normalize axios/Zoho errors into a friendly message. */
 function extractError(error) {
   const payload = error.response?.data;

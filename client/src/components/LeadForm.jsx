@@ -53,11 +53,11 @@ export default function LeadForm({ onCreated, onError }) {
 
   function validate() {
     const errs = {};
-    if (!form.firstName.trim()) errs.firstName = 'First Name is required';
     if (!form.lastName.trim()) errs.lastName = 'Last Name is required';
     if (!form.company.trim()) errs.company = 'Company is required';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Valid email is required';
-    if (!form.phone.trim()) errs.phone = 'Phone is required';
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      errs.email = 'Valid email format is required';
+    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   }
@@ -93,9 +93,9 @@ export default function LeadForm({ onCreated, onError }) {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Field field="firstName" label="First Name" icon={UserRound} placeholder="John" value={form.firstName} error={errors.firstName} onChange={set} />
-          <Field field="lastName" label="Last Name" icon={UserRound} placeholder="Doe" value={form.lastName} error={errors.lastName} onChange={set} />
+          <Field field="lastName" label="Last Name *" icon={UserRound} placeholder="Doe" value={form.lastName} error={errors.lastName} onChange={set} />
         </div>
-        <Field field="company" label="Company" icon={Building} placeholder="Acme Inc." value={form.company} error={errors.company} onChange={set} />
+        <Field field="company" label="Company *" icon={Building} placeholder="Acme Inc." value={form.company} error={errors.company} onChange={set} />
         <Field field="email" label="Email" icon={Mail} type="email" placeholder="john@acme.com" value={form.email} error={errors.email} onChange={set} />
         <Field field="phone" label="Phone" icon={Phone} type="tel" placeholder="+1 555 000 1234" value={form.phone} error={errors.phone} onChange={set} />
         <button

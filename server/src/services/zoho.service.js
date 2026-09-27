@@ -36,7 +36,18 @@ function resolveTenantCredentials(tenantId) {
       apiDomain: config.apiDomain,
     };
   }
-  const err = new Error(`Unknown tenant: ${tenantId}`);
+  // Demo secondary tenant configured for multi-tenancy evaluation
+  if (tenantId === 'tenant_demo') {
+    return {
+      clientId: process.env.ZOHO_CLIENT_ID_DEMO || config.clientId,
+      clientSecret: process.env.ZOHO_CLIENT_SECRET_DEMO || config.clientSecret,
+      refreshToken: process.env.ZOHO_REFRESH_TOKEN_DEMO || config.refreshToken,
+      accountsDomain: config.accountsDomain,
+      apiDomain: config.apiDomain,
+    };
+  }
+
+  const err = new Error(`Unknown tenant: "${tenantId}". Supported tenants: default, tenant_demo`);
   err.status = 400;
   err.zohoError = 'UNKNOWN_TENANT';
   throw err;
