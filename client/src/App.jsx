@@ -103,11 +103,10 @@ export default function App() {
     setSelectedLeadId(data.id); // verify by fetching the record back by ID
   }
 
-  /** Duplicate submit (409): surface the existing record instead of a dead-end error. */
+  /** Duplicate submit (409): toast only — no modal, since nothing was created. */
   function handleCreateError(err) {
     if (err.code === 'DUPLICATE_DATA' && err.details?.existingId) {
-      addToast('error', 'DUPLICATE_DATA', `${err.message} — opening the existing record.`);
-      setSelectedLeadId(err.details.existingId);
+      addToast('error', 'DUPLICATE_DATA', `${err.message}. No new record was created.`);
       return;
     }
     showError(err);
@@ -182,10 +181,10 @@ export default function App() {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`alert animate-slide-in-right shadow-lg border ${
+            className={`alert animate-slide-in-right shadow-xl backdrop-blur-md border ${
               t.type === 'success'
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                ? 'bg-emerald-950/95 border-emerald-500/40 text-emerald-200'
+                : 'bg-rose-950/95 border-rose-500/40 text-rose-200'
             }`}
           >
             {t.type === 'success' ? <CheckCircle className="h-5 w-5 shrink-0" /> : <AlertCircle className="h-5 w-5 shrink-0" />}
